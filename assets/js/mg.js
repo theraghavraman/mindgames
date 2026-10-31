@@ -346,7 +346,7 @@ MG.fmtMetric = (metric, v) => !v ? '–' : metric === 'time' ? MG.fmtTime(v) : S
    them, and they only count time the player could be watching.
    cfg: { id, title, chapter, levels, level, metric, timer, rules, legend,
           settings: [{ key, label, desc, def }], onNew(level), onRestart(),
-          onPause(paused), onSetting(key, value), size: { ar, chrome, chromeL, maxW, minW } }
+          typing (letter keys belong to the game), onPause(paused), onSetting(key, value), size: { ar, chrome, chromeL, maxW, minW } }
    ============================================================================= */
 MG.shell = function (cfg) {
   const levels = cfg.levels || { normal: { name: 'Normal', rank: 2, desc: '' } };
@@ -733,7 +733,7 @@ MG.shell = function (cfg) {
   el.resume.addEventListener('click', e => { e.stopPropagation(); api.setPaused(false); });
   el.ovPause.addEventListener('click', () => api.setPaused(false));
   MG.onKey(e => {
-    if ((e.key === 'p' || e.key === 'P') && timed && !e.ctrlKey && !e.metaKey && !e.altKey) { api.setPaused(!api.paused); e.preventDefault(); }
+    if ((e.key === 'p' || e.key === 'P') && timed && !cfg.typing && !e.ctrlKey && !e.metaKey && !e.altKey) { api.setPaused(!api.paused); e.preventDefault(); }
     else if (e.key === '?' ) { api.openRules(); }
   });
   document.addEventListener('visibilitychange', () => {

@@ -414,6 +414,12 @@ test('dots-and-boxes: lines draw from the keyboard', async () => {
   await page.keyboard.press('Enter');
   equal(await page.evaluate(() => document.querySelectorAll('.ln:not(.free)').length), 1, 'lines drawn');
 });
+test('word-guess: P is a letter, not the pause key', async () => {
+  const page = await game('word-guess');
+  await page.keyboard.type('apple');
+  equal(await page.evaluate(() => MG.debug.S.cur), 'apple', 'typed');
+  equal(await page.evaluate(() => document.querySelector('[data-mg="wrap"]').classList.contains('is-paused')), false, 'paused');
+});
 test('colour-clash and mental-maths: on-screen buttons work from the keyboard', async () => {
   const cc = await game('color-clash');
   await cc.focus('.ans button');

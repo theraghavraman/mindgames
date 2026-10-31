@@ -32,7 +32,7 @@ const RULES = `<p>Guess the hidden five-letter word.</p><ul>
 <li><b style="color:var(--pencil)">Grey</b>: the letter isn't in the word, or not as many times as you used it.</li></ul>
 <p class="tip">On Strict, green letters must stay put and gold letters must appear in every later guess.</p>`;
 let S = null, grid = null, kb = null;
-const api = MG.shell({ id: 'word-guess', title: 'Word Guess', chapter: 'brain', levels: LEVELS, metric: 'moves', rules: RULES, onNew: newGame, size: { ar: .86, chrome: 270, maxW: 380, minW: 200 } });
+const api = MG.shell({ id: 'word-guess', typing: true, title: 'Word Guess', chapter: 'brain', levels: LEVELS, metric: 'moves', rules: RULES, onNew: newGame, size: { ar: .86, chrome: 270, maxW: 380, minW: 200 } });
 kb = MG.h('div', { class: 'kb' });
 kb.innerHTML = ['qwertyuiop', 'asdfghjkl', '+zxcvbnm-'].map(r => `<div class="kr">${[...r].map(k => k === '+' ? '<button type="button" class="wide" data-k="Enter">Enter</button>' : k === '-' ? `<button type="button" class="wide" data-k="Backspace" aria-label="Delete">${MG.icon('back', 'sm')}</button>` : `<button type="button" data-k="${k}">${k}</button>`).join('')}</div>`).join('');
 api.controls.appendChild(kb);
