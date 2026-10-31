@@ -96,3 +96,7 @@ before you see them:
 - Typeface: [Recursive](https://github.com/arrowtype/recursive), SIL Open Font License (`assets/fonts/OFL-LICENSE.txt`).
 - Word list: [an-array-of-english-words](https://www.npmjs.com/package/an-array-of-english-words), MIT License
   (`assets/js/data/WORDS-LICENSE.txt`).
+
+## License
+
+MIT, see [LICENSE](LICENSE). The typeface and word list above keep their own licenses.
