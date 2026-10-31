@@ -6,7 +6,9 @@ MG.style(`
 .db { position: absolute; inset: 0; }
 .db svg { width: 100%; height: 100%; display: block; overflow: visible; touch-action: manipulation; }
 .db .dot { fill: var(--graphite); }
+.db svg, .db svg * { outline: none; }
 .db .hit { stroke: transparent; stroke-width: .34; cursor: pointer; }
+.db .hit:focus-visible { stroke: var(--pencil); stroke-opacity: .25; }
 .db .hit:hover + .ln.free, .db .hit:focus-visible + .ln.free { stroke: var(--pencil); opacity: .5; }
 .db .ln { stroke-width: .1; stroke-linecap: round; }
 .db .ln.free { stroke: transparent; }

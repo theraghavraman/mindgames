@@ -457,6 +457,14 @@ test('offline copy matches the sources and opens games', async () => {
   equal(await f[0].evaluate(() => typeof MG.press), 'function', 'current mg.js in frame');
 });
 
+test('dots and boxes: keyboard focus draws no outline across the board', async () => {
+  const page = await open('games/dots-and-boxes/index.html');
+  await page.locator('.db .hit').first().focus();
+  equal(await page.evaluate(() => document.activeElement.getAttribute('class')), 'hit', 'focused element');
+  equal(await page.evaluate(() => [...document.querySelectorAll('.db svg, .db svg *')].filter(e => getComputedStyle(e).outlineStyle !== 'none').length), 0, 'outlined elements');
+  equal(page.errors, [], 'errors');
+});
+
 /* -------------------------------------------------------------- run */
 let failed = 0;
 for (const t of tests) {
