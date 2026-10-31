@@ -10,7 +10,7 @@ MG.style(`
 .db .hit { stroke: transparent; stroke-width: .34; cursor: pointer; }
 .db .hit:focus-visible { stroke: var(--pencil); stroke-opacity: .25; }
 .db .hit:hover + .ln.free, .db .hit:focus-visible + .ln.free { stroke: var(--pencil); opacity: .5; }
-.db .ln { stroke-width: .1; stroke-linecap: round; }
+.db .ln { stroke-width: .1; stroke-linecap: round; pointer-events: none; }
 .db .ln.free { stroke: transparent; }
 .db .ln.p1 { stroke: var(--pen); } .db .ln.p2 { stroke: var(--red); }
 .db .ln.new { stroke-dasharray: 1.2; animation: dl .25s ease-out both; }

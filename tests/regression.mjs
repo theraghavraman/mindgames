@@ -465,6 +465,21 @@ test('dots and boxes: keyboard focus draws no outline across the board', async (
   equal(page.errors, [], 'errors');
 });
 
+test('dots and boxes: a click on the middle of a line draws it', async () => {
+  const page = await open('games/dots-and-boxes/index.html');
+  await page.waitForFunction(() => document.body.textContent.includes('Your turn'));
+  const drawn = () => page.evaluate(() => document.querySelectorAll('.db .ln.p1').length);
+  const before = await drawn();
+  const [x, y] = await page.evaluate(() => {
+    const free = [...document.querySelectorAll('.db .hit')].find((e, n) => document.querySelector(`[data-v="${n}"]`).classList.contains('free'));
+    const q = free.getBoundingClientRect();
+    return [q.left + q.width / 2, q.top + q.height / 2];
+  });
+  await page.mouse.click(x, y);
+  await sleep(200);
+  equal(await drawn(), before + 1, 'lines drawn');
+});
+
 /* -------------------------------------------------------------- run */
 let failed = 0;
 for (const t of tests) {
