@@ -1,0 +1,39 @@
+/* Board for the Sudoku family: cells on a CSS grid, rules drawn in two SVG layers */
+.lb { position: absolute; inset: 0; isolation: isolate; --cw: calc(100cqi / var(--cols)); }
+.lb-grid { position: absolute; inset: 0; display: grid; }
+.lb.round .lb-grid { border: 3px solid var(--frame); border-radius: 10px; overflow: hidden; background: var(--sheet); }
+.lb svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.lb.round svg { left: 3px; top: 3px; width: calc(100% - 6px); height: calc(100% - 6px); }
+.lb-under { z-index: 2; }
+.lb-over { z-index: 4; }
+.lb .cell { box-shadow: inset -1px -1px 0 var(--rule); }
+.lb .cell .fx { z-index: 1; }
+.lb .cell .v { z-index: 3; font-size: calc(var(--cw) * .58); }
+.lb .notes { position: absolute; inset: 6%; z-index: 3; pointer-events: none; display: grid; grid-template-columns: repeat(var(--nc), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+.lb .cell.lbl .notes { top: 27%; }
+.lb .cell.lbl .v { margin-top: 24%; font-size: calc(var(--cw) * .5); }
+.lb .notes i { display: grid; place-items: center; font-style: normal; font-size: calc(var(--cw) * var(--nf, .24)); line-height: 1; font-weight: 600; color: var(--pencil); visibility: hidden; }
+.lb .notes i.on { visibility: visible; }
+.lb .notes i.match { background: var(--hl); color: var(--hl-ink); border-radius: 3px; font-weight: 850; }
+.lb .void { background: transparent; }
+.lb .clue { display: grid; place-items: center; font-size: calc(var(--cw) * .48); font-weight: 760; color: var(--graphite-2); font-variation-settings: var(--casual); cursor: pointer; border-radius: 8px; transition: opacity .2s, color .2s; }
+.lb .clue:hover { background: var(--tint); }
+.lb .clue.done { color: var(--pencil); opacity: .4; text-decoration: line-through; }
+.lb .clue.bad { color: var(--red); }
+.lb-over .rg { fill: none; stroke: var(--frame); stroke-width: 2.6px; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.lb-over .kc { fill: none; stroke: var(--graphite-2); stroke-width: 1.3px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; opacity: .85; }
+.lb-over .cc { fill: none; stroke: var(--frame); stroke-width: 2.4px; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.lb-over .lbl { font-family: var(--font); font-size: .25px; font-weight: 760; fill: var(--graphite); stroke: var(--sheet); stroke-width: .07px; paint-order: stroke; stroke-linejoin: round; font-variant-numeric: tabular-nums; }
+.lb-over .sgh { fill: none; stroke: var(--sheet); stroke-width: 6px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.lb-over .sg { fill: none; stroke: var(--graphite); stroke-width: 2.1px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.lb-over .dot { stroke: var(--graphite); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.lb-over .dot.w { fill: var(--sheet); }
+.lb-over .dot.b { fill: var(--graphite); }
+.lb-under .win { fill: var(--ch-deep); opacity: .16; }
+.lb-under .dg { stroke: var(--ch-deep); stroke-width: 2px; vector-effect: non-scaling-stroke; opacity: .6; }
+.lb-under .par { fill: var(--graphite); opacity: .1; }
+.lb-under .thermo { opacity: .34; }
+.lb-under .thermo circle { fill: var(--graphite-2); stroke: none; }
+.lb-under .thermo polyline { stroke: var(--graphite-2); }
+.lb-under .thermo polyline { fill: none; stroke-width: .3px; stroke-linecap: round; stroke-linejoin: round; }
+.lb-under .ar { fill: none; stroke: var(--graphite-2); stroke-width: 1.7px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
