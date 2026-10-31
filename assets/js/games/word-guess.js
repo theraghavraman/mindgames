@@ -77,7 +77,7 @@ function submit() {
   render(); MG.sfx.flip();
   const n = S.rows.length;
   if (g === S.ans) {
-    setTimeout(() => { const r = grid.children[n - 1]; if (r) r.classList.add('win'); }, 600);
+    api.later(() => { const r = grid.children[n - 1]; if (r) r.classList.add('win'); }, 600);
     const prev = api.stats.get(api.level).best, best = !prev || n < prev ? n : prev;
     api.win({ title: ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew', 'Close one', 'Made it'][n - 1] || 'Solved', value: n, big: S.ans.toUpperCase(), sub: `Found in ${MG.plural(n, 'guess', 'guesses')}.`, facts: [[n, 'Guesses'], [MG.fmtTime(api.timer.elapsed), 'Time'], [best, 'Fewest guesses']], delay: 1500 });
   } else if (n >= S.L.rows) api.lose({ title: 'Out of guesses', big: S.ans.toUpperCase(), sub: 'That was the word.', delay: 1200 });

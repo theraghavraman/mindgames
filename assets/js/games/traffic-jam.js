@@ -21,6 +21,7 @@ const COLS = ['var(--c-sudoku)', 'var(--c-duels)', 'var(--c-moves)', 'var(--c-br
 const RULES = `<p>Get the red car out through the gap on the right side of the lot.</p><ul>
 <li>Drag a vehicle along its length: cars and lorries only move forwards or backwards, never sideways.</li>
 <li>Vehicles can't pass through each other.</li><li>Sliding one vehicle any distance counts as one move.</li></ul>
+<p>On a keyboard, press <kbd>Tab</kbd> to reach a vehicle and slide it with the arrow keys.</p>
 <p class="tip">Each board is solved in advance by a computer, so you know the fewest moves possible before you start.</p>`;
 const N = 6;
 /* vehicles: [horizontal, length, fixed row or column]; a state lists each vehicle's position along its track */
@@ -83,9 +84,21 @@ function restart() { S.st = S.start.slice(); S.moves = 0; build(); api.begin(); 
 function build() {
   const box = MG.h('div', { class: 'tj', role: 'application', 'aria-label': 'Parking lot' });
   lot = MG.h('div', { class: 'lot' }); lot.appendChild(MG.h('div', { class: 'exit' }));
-  els = S.V.map((v, k) => { const el = MG.h('div', { class: 'car' + (k === 0 ? ' red' : ''), 'data-k': k }); if (k) el.style.background = COLS[k % COLS.length]; lot.appendChild(el); return el; });
+  els = S.V.map((v, k) => { const el = MG.h('div', { class: 'car' + (k === 0 ? ' red' : ''), 'data-k': k, tabindex: 0, role: 'button', 'aria-label': `${k ? 'Car ' + k : 'Red car'}, moves ${v[0] ? 'left and right' : 'up and down'}` }); if (k) el.style.background = COLS[k % COLS.length]; lot.appendChild(el); return el; });
   box.appendChild(lot); api.board.innerHTML = ''; api.board.appendChild(box);
-  let drag = null;
+  let drag = null, nudge = '';
+  lot.addEventListener('keydown', e => {
+    const el = e.target.closest('.car'); if (!el || !api.canPlay()) return;
+    const k = +el.dataset.k, [h] = S.V[k], d = (h ? { ArrowLeft: -1, ArrowRight: 1 } : { ArrowUp: -1, ArrowDown: 1 })[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const p = S.st[k] + d, [lo, hi] = freeRange(k);
+    if (p < lo || p > hi) { MG.replay(el, 'nudge', 260); return; }
+    /* a slide of several cells is one move, as it is with a drag */
+    if (nudge !== k + ':' + d) { nudge = k + ':' + d; S.moves++; }
+    S.st[k] = p; api.dirty = true; MG.sfx.slide(); render(); check();
+  });
+  lot.addEventListener('focusout', () => { nudge = ''; });
   lot.addEventListener('pointerdown', e => {
     const el = e.target.closest('.car'); if (!el || !api.canPlay()) return;
     const k = +el.dataset.k, [h] = S.V[k], range = freeRange(k);

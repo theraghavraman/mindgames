@@ -1607,8 +1607,10 @@ function freshGame(level, r) {
 }
 const hasProgress = () => !!S && S.status === 'playing' && (S.history.length > 0 || S.hintsUsed > 0 || S.mistakes > 0);
 
+let endTimer = 0;
 async function newGame(level) {
   if (ui.busy) return;
+  clearTimeout(endTimer);
   if (!LEVELS[level]) level = 'medium';
   if (hasProgress()) { stats[S.difficulty].streak = 0; saveStats(); }
   ui.busy = true; ui.paused = false; ui.sel = -1; ui.reveal = false; ui.notes = false;
@@ -1634,6 +1636,7 @@ async function newGame(level) {
 
 function restartGame() {
   if (!S || ui.busy) return;
+  clearTimeout(endTimer);
   if (hasProgress()) stats[S.difficulty].streak = 0;
   Object.assign(S, {
     values: S.puzzle.slice(), notes: new Array(81).fill(0), hinted: new Array(81).fill(false),
@@ -1849,7 +1852,7 @@ function finishWin() {
   sfx.win();
   buzz([30, 50, 30]);
   announce(`Solved in ${spokenTime(S.elapsed)}.`);
-  setTimeout(() => openEnd(true, isBest ? (firstWin ? 'first' : 'best') : ''), reduced() ? 150 : 1400);
+  clearTimeout(endTimer); endTimer = setTimeout(() => openEnd(true, isBest ? (firstWin ? 'first' : 'best') : ''), reduced() ? 150 : 1400);
 }
 
 function finishLoss() {
@@ -1861,7 +1864,7 @@ function finishLoss() {
   saveStats();
   persist();
   render();
-  setTimeout(() => openEnd(false), 900);
+  clearTimeout(endTimer); endTimer = setTimeout(() => openEnd(false), 900);
 }
 
 /* =============================================================================

@@ -90,9 +90,9 @@ function drop(c) {
   const hole = MG.qs(`[data-r="${r}"]`, cols[c]), fall = R - r;
   const d = MG.h('div', { class: 'disc p' + p }); d.style.setProperty('--fall', fall); d.style.setProperty('--t', (.12 + fall * .05) + 's');
   hole.appendChild(d);
-  setTimeout(() => MG.sfx.blip(p === 1 ? 520 : 390, .08), (120 + fall * 50));
+  api.later(() => MG.sfx.blip(p === 1 ? 520 : 390, .08), (120 + fall * 50));
   const line = lineAt(S.b, c, r, p);
-  if (line) { S.over = true; setTimeout(() => line.forEach(([x, y]) => { const el = MG.qs(`[data-r="${y}"] .disc`, cols[x]); if (el) el.classList.add('win'); }), 350); finish(p); return; }
+  if (line) { S.over = true; api.later(() => line.forEach(([x, y]) => { const el = MG.qs(`[data-r="${y}"] .disc`, cols[x]); if (el) el.classList.add('win'); }), 350); finish(p); return; }
   if (S.h.every(v => v >= R)) { S.over = true; finish(0); return; }
   S.turn = 3 - S.turn; render();
   if (S.turn === 2) api.think(() => drop(cpuMove()), 550);

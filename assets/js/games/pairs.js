@@ -24,7 +24,7 @@ const RULES = `<p>Find every matching pair.</p><ul><li>Tap two cards to turn the
 let S = null, els = [], lock = false;
 const api = MG.shell({ id: 'pairs', title: 'Pairs', chapter: 'brain', levels: LEVELS, metric: 'time', rules: RULES, onNew: newGame, size: { ar: 1, chrome: 220, maxW: 560 } });
 api.mid.innerHTML = '<span class="pill">Turns <b data-t>0</b></span><span class="pill">Pairs <b data-p>0</b></span>';
-const glyph = k => `<svg viewBox="0 0 24 24" aria-hidden="true" style="fill:${COLS[k % COLS.length]}">${SHAPES[(k * 7) % SHAPES.length]}</svg>`;
+const glyph = k => `<svg viewBox="0 0 24 24" aria-hidden="true" style="fill:${COLS[Math.floor(k / SHAPES.length)]}">${SHAPES[k % SHAPES.length]}</svg>`;
 function newGame(level) {
   const L = LEVELS[level], n = L.cols * L.rows / 2;
   const kinds = MG.shuffle(MG.range(SHAPES.length * COLS.length)).slice(0, n);
@@ -45,14 +45,14 @@ function flip(i) {
   const [a, b] = S.up;
   if (S.cards[a] === S.cards[b]) {
     S.done.add(a); S.done.add(b); S.up = [];
-    setTimeout(() => { els[a].classList.add('done'); els[b].classList.add('done'); MG.sfx.unit(); }, 260);
-    if (S.done.size === S.cards.length) setTimeout(() => {
+    api.later(() => { els[a].classList.add('done'); els[b].classList.add('done'); MG.sfx.unit(); }, 260);
+    if (S.done.size === S.cards.length) api.later(() => {
       const prev = api.stats.get(api.level).best, t = api.timer.elapsed;
       api.win({ title: 'All pairs found', sub: `${S.cards.length / 2} pairs in ${MG.plural(S.turns, 'turn')}.`, facts: [[S.turns, 'Turns'], [S.cards.length / 2, 'Pairs'], [MG.fmtTime(!prev || t < prev ? t : prev), 'Best time']] });
     }, 500);
   } else {
     lock = true;
-    setTimeout(() => { els[a].classList.remove('up'); els[b].classList.remove('up'); S.up = []; lock = false; render(); }, 850);
+    api.later(() => { els[a].classList.remove('up'); els[b].classList.remove('up'); S.up = []; lock = false; render(); }, 850);
   }
   render();
 }

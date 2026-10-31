@@ -100,7 +100,7 @@ function show(id) {
   const busy = $('frameBusy');
   if (fresh) {
     busy.hidden = false;
-    f.frame.addEventListener('load', () => { busy.hidden = true; post(f, { mg: 'theme', theme: MG.prefs.theme }); if (current === id) focusFrame(f); }, { once: true });
+    f.frame.addEventListener('load', () => { busy.hidden = true; post(f, { mg: 'theme', theme: MG.prefs.theme }); if (current === id) focusFrame(f); else post(f, { mg: 'pause' }); }, { once: true });
     if (EMBED) f.frame.srcdoc = pageHTML(id); else f.frame.src = g.path;
   } else { busy.hidden = true; post(f, { mg: 'resume' }); focusFrame(f); }
   MG.recent(id);

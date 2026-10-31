@@ -29,7 +29,7 @@ const api = MG.shell({ id: 'color-clash', title: 'Colour Clash', chapter: 'brain
 api.mid.innerHTML = '<span class="pill">Score <b data-s>0</b></span><span class="pill">Time <b data-t>60</b></span>';
 ans = MG.h('div', { class: 'ans' });
 api.controls.appendChild(ans);
-ans.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b) answer(+b.dataset.k); });
+MG.press(ans, 'button', b => answer(+b.dataset.k));
 function newGame(level) {
   clearInterval(tick);
   const L = LEVELS[level];

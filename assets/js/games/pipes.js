@@ -21,6 +21,7 @@ const LEVELS = {
 const RULES = `<p>Connect every tile to the power source in the middle.</p><ul>
 <li>Tap a tile to turn it a quarter turn clockwise. Right-click or long-press turns it back.</li>
 <li>Connected pipes light up. Every lamp at a dead end must light, and no pipe may point at nothing.</li></ul>
+<p>On a keyboard, move with the arrow keys and press <kbd>Enter</kbd> or <kbd>Space</kbd> to turn a tile. Hold <kbd>Shift</kbd> to turn it back.</p>
 <p class="tip">The network is a tree: there's never a loop. Start from the edges: a pipe on the border can't point outwards.</p>`;
 const DIRS = [[-1, 0, 1], [0, 1, 2], [1, 0, 4], [0, -1, 8]];
 const OPP = { 1: 4, 2: 8, 4: 1, 8: 2 };
@@ -63,6 +64,7 @@ function build() {
   box.style.gridTemplateColumns = `repeat(${S.n}, 1fr)`;
   els = S.conn.map((_, i) => { const b = MG.h('button', { type: 'button', 'data-i': i, html: tileSVG(i) }); box.appendChild(b); return b; });
   api.board.innerHTML = ''; api.board.appendChild(box);
+  MG.gridKeys(box, els, S.n, (i, e) => { if (!MG.activates(e)) return false; turn(i, e.shiftKey ? 3 : 1); return true; });
   let lp = 0, longed = false;
   box.addEventListener('contextmenu', e => { e.preventDefault(); const b = e.target.closest('button'); if (b) turn(+b.dataset.i, 3); });
   box.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (!b || e.button === 2) return; longed = false; clearTimeout(lp); lp = setTimeout(() => { longed = true; turn(+b.dataset.i, 3); }, 420); });
@@ -94,7 +96,7 @@ function turn(i, k) {
 }
 function render() {
   const on = lit();
-  els.forEach((el, i) => { el.classList.toggle('on', !!on[i]); MG.qs('svg', el).style.transform = `rotate(${S.turns[i] * 90}deg)`; });
+  els.forEach((el, i) => { el.classList.toggle('on', !!on[i]); MG.qs('svg', el).style.transform = `rotate(${S.turns[i] * 90}deg)`; el.setAttribute('aria-label', `Row ${((i / S.n) | 0) + 1}, column ${i % S.n + 1}: ${on[i] ? 'powered' : 'not powered'}`); });
   MG.qs('[data-t]', api.mid).textContent = S.moves;
   const k = on.reduce((s, v) => s + v, 0);
   if (api.status === 'playing') api.progress(`${k} of ${S.n * S.n} tiles powered`, 'Tap to turn a tile. Every pipe end must meet another pipe.', k / (S.n * S.n), Math.min(60, S.n * S.n));

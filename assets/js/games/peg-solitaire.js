@@ -3,6 +3,7 @@
 'use strict';
 const MG = window.MG;
 MG.style(`
+.ps .cursor { fill: none; stroke: var(--pen); stroke-width: .07; pointer-events: none; }
 .ps { position: absolute; inset: 0; border-radius: 50%; }
 .ps svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .ps .hole { fill: var(--graphite); opacity: .16; }
@@ -27,6 +28,7 @@ const RULES = `<p>Remove pegs by jumping until only one is left.</p><ul>
 <li>The peg it jumped over is removed.</li>
 <li>On the cross boards, jumps go up, down, left and right. On the triangle they also go along the two diagonals of the triangle.</li></ul>
 <p>Tap a peg to pick it up, then tap one of the circled holes. The game ends when no jump is possible.</p>
+<p>On a keyboard, move with the arrow keys and press <kbd>Enter</kbd> or <kbd>Space</kbd> to pick up a peg or land in a hole.</p>
 <p class="tip">The centre-finish level is the classic challenge: one peg, in the very middle.</p>`;
 let S = null, svgEl = null;
 const api = MG.shell({ id: 'peg-solitaire', title: 'Peg Solitaire', chapter: 'moves', levels: LEVELS, metric: 'time', rules: RULES, onNew: newGame, onRestart: () => newGame(api.level), size: { ar: 1, chrome: 240, maxW: 560 } });
@@ -41,17 +43,38 @@ function newGame(level) {
   const dirs = tri ? [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, -1]] : [[0, 1], [0, -1], [1, 0], [-1, 0]];
   const jumps = holes.map(([r, c]) => dirs.map(([dr, dc]) => [idx.get(key(r + dr, c + dc)), idx.get(key(r + 2 * dr, c + 2 * dc))]).filter(([o, t]) => o != null && t != null));
   const empty = tri ? 0 : idx.get(key(3, 3));
-  S = { level, tri, holes, jumps, centre: tri ? -1 : idx.get(key(3, 3)), peg: holes.map((_, i) => (i === empty ? 0 : 1)), sel: -1, hist: [] };
+  S = { level, tri, holes, jumps, centre: tri ? -1 : idx.get(key(3, 3)), peg: holes.map((_, i) => (i === empty ? 0 : 1)), sel: -1, hist: [], cur: tri ? 0 : 1, kbd: false };
   build(); api.begin(); render();
 }
 const pos = i => { const [r, c] = S.holes[i]; return S.tri ? [2.5 + (c - r / 2), .9 + r * .9] : [c + .5, r + .5]; };
 function build() {
-  const box = MG.h('div', { class: 'ps', role: 'application', 'aria-label': 'Peg board' });
+  const box = MG.h('div', { class: 'ps', role: 'application', tabindex: 0, 'aria-label': 'Peg board. Arrow keys move, Enter picks up a peg or lands in a hole.' });
   const vb = S.tri ? '-.2 -.2 5.4 5.4' : '-.2 -.2 7.4 7.4';
   box.innerHTML = `<svg viewBox="${vb}"><g data-g></g></svg>`;
   svgEl = MG.qs('[data-g]', box);
   api.board.innerHTML = ''; api.board.appendChild(box);
   box.addEventListener('click', e => { const t = e.target.closest('[data-i]'); if (t) tap(+t.dataset.i); });
+  box.addEventListener('focus', () => { if (box.matches(':focus-visible')) { S.kbd = true; render(); } });
+  box.addEventListener('blur', () => { S.kbd = false; render(); });
+  box.addEventListener('keydown', e => {
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (d) { e.preventDefault(); walk(d); }
+    else if (MG.activates(e)) { e.preventDefault(); S.kbd = true; tap(S.cur); }
+  });
+}
+/* Holes don't sit on a full grid, so an arrow goes to the nearest hole in that direction */
+function walk([dx, dy]) {
+  const [x0, y0] = pos(S.cur);
+  let best = -1, bd = Infinity;
+  S.holes.forEach((_, i) => {
+    const [x, y] = pos(i), along = (x - x0) * dx + (y - y0) * dy, across = Math.abs((x - x0) * dy) + Math.abs((y - y0) * dx);
+    if (along < .3 || across > along * 1.1) return;
+    const d = along + across * 2;
+    if (d < bd) { bd = d; best = i; }
+  });
+  S.kbd = true;
+  if (best >= 0) { S.cur = best; MG.announce(`${S.peg[best] ? 'Peg' : 'Empty hole'}, row ${S.holes[best][0] + 1}, column ${S.holes[best][1] + 1}`); }
+  render();
 }
 const moves = () => { const out = []; S.peg.forEach((p, i) => { if (p) for (const [o, t] of S.jumps[i]) if (S.peg[o] && !S.peg[t]) out.push([i, o, t]); }); return out; };
 function render() {
@@ -60,6 +83,7 @@ function render() {
   S.holes.forEach((_, i) => { const [x, y] = pos(i); h += `<circle class="hole" cx="${x}" cy="${y}" r=".2" data-i="${i}"/>`; });
   S.peg.forEach((p, i) => { if (!p) return; const [x, y] = pos(i); h += `<g class="peg${S.sel === i ? ' sel' : ''}" data-i="${i}" role="button" aria-label="Peg"><circle class="b" cx="${x}" cy="${y}" r=".34"/><circle class="s" cx="${x - .1}" cy="${y - .11}" r=".09"/></g>`; });
   legal.forEach(t => { const [x, y] = pos(t); h += `<circle class="dest" cx="${x}" cy="${y}" r=".33" data-i="${t}"/>`; });
+  if (S.kbd) { const [x, y] = pos(S.cur); h += `<circle class="cursor" cx="${x}" cy="${y}" r=".44"/>`; }
   svgEl.innerHTML = h;
   const left = S.peg.reduce((s, v) => s + v, 0);
   MG.qs('[data-p]', api.mid).textContent = left;

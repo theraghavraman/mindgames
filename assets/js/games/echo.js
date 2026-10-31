@@ -28,18 +28,18 @@ function newGame() {
   pads = MG.range(4).map(k => { const b = MG.h('button', { type: 'button', 'data-k': k, 'aria-label': ['Yellow', 'Pink', 'Blue', 'Green'][k] + ' pad' }); box.appendChild(b); return b; });
   hub = MG.h('div', { class: 'hub', text: 'Ready' }); box.appendChild(hub);
   wrap.appendChild(box); api.board.innerHTML = ''; api.board.appendChild(wrap);
-  box.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b) press(+b.dataset.k); });
+  MG.press(box, 'button', b => press(+b.dataset.k));
   S = { seq: [], at: 0, listening: false, best: 0 };
   api.begin(); next();
 }
-const light = (k, ms) => { pads[k].classList.add('lit'); MG.sfx.tone(TONES[k], ms / 1000 + .05, 'triangle', .07); setTimeout(() => pads[k].classList.remove('lit'), ms); };
+const light = (k, ms) => { const pad = pads[k]; pad.classList.add('lit'); MG.sfx.tone(TONES[k], ms / 1000 + .05, 'triangle', .07); setTimeout(() => pad.classList.remove('lit'), ms); };
 async function next() {
   S.seq.push(MG.rand(4)); S.at = 0; S.listening = false;
   const gap = Math.max(170, LEVELS[api.level].gap - (api.level === 'hard' ? S.seq.length * 9 : 0));
   hub.textContent = S.seq.length; MG.qs('[data-l]', api.mid).textContent = S.seq.length - 1;
   api.progress('Watch', `Sequence of ${S.seq.length}.`, null, 0, 'info');
-  await MG.sleep(700);
-  for (const k of S.seq) { if (api.status !== 'playing') return; light(k, gap * .7); await MG.sleep(gap); }
+  if (!await api.wait(700)) return;
+  for (const k of S.seq) { light(k, gap * .7); if (!await api.wait(gap)) return; }
   S.listening = true; api.progress('Your turn', `Repeat all ${S.seq.length} steps.`, 0, S.seq.length, 'turn');
 }
 function press(k) {
@@ -54,7 +54,7 @@ function press(k) {
   }
   S.at++;
   api.progress('Your turn', `${S.at} of ${S.seq.length}.`, S.at / S.seq.length, S.seq.length, 'turn');
-  if (S.at === S.seq.length) { S.listening = false; hub.textContent = '✓'; setTimeout(next, 450); }
+  if (S.at === S.seq.length) { S.listening = false; hub.textContent = '✓'; api.later(next, 450); }
 }
 MG.onKey(e => { if (/^[1-4]$/.test(e.key)) press(+e.key - 1); });
 newGame();

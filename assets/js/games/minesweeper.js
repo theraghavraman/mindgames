@@ -24,7 +24,7 @@ const RULES = `<p>Uncover every cell that doesn't hide a mine.</p><ul>
 <li>Tap a cell to uncover it. A number tells you how many of its eight neighbours hide a mine.</li>
 <li>Flag a cell you're sure is a mine: long-press it, right-click it, or switch on <b>Flag mode</b>.</li>
 <li>Tap a number whose mines are all flagged to uncover all of its other neighbours at once.</li>
-<li>Your first tap is always safe and opens up an area.</li></ul><p class="tip">The clock starts with your first tap.</p>`;
+<li>Your first tap is always safe and opens up an area.</li></ul><p>On a keyboard, move with the arrow keys, press <kbd>Enter</kbd> or <kbd>Space</kbd> to uncover and <kbd>F</kbd> to flag.</p><p class="tip">The clock starts with your first tap.</p>`;
 let G = null, flagMode = false, els = [];
 const api = MG.shell({ id: 'minesweeper', title: 'Minesweeper', chapter: 'logic', levels: LEVELS, metric: 'time', rules: RULES,
   newText: 'Pick a board. Your first tap is always safe.', onNew: newGame, size: { ar: 1, chrome: 270, maxW: 620 } });
@@ -51,6 +51,12 @@ function newGame(level) {
   for (let i = 0; i < R * C; i++) { const b = MG.h('b', { 'data-i': i, role: 'gridcell', 'aria-label': 'Hidden' }); els.push(b); box.appendChild(b); }
   api.board.innerHTML = ''; api.board.appendChild(box);
   bind(box);
+  MG.gridKeys(box, els, C, (i, e) => {
+    if (MG.activates(e)) act(i, flagMode && !G.open[i]);
+    else if (e.key === 'f' || e.key === 'F') act(i, true);
+    else return false;
+    return true;
+  });
   api.begin(); api.timer.stop();
   api.progress('Tap any cell to start', 'Your first tap is always safe. Long-press or right-click to flag a mine.');
   render();
@@ -109,12 +115,13 @@ function render() {
   for (let i = 0; i < G.R * G.C; i++) {
     const b = els[i];
     let cls = '', txt = '', label = 'Hidden';
+    const where = `Row ${((i / G.C) | 0) + 1}, column ${i % G.C + 1}: `;
     if (G.open[i] === 2 || (G.over && G.mine[i] && api.status === 'lost' && !G.flag[i])) { cls = 'o m' + (G.boom === i ? ' boom' : ''); label = 'Mine'; }
     else if (G.open[i]) { cls = 'o' + (G.num[i] ? ' n' + G.num[i] : ''); txt = G.num[i] || ''; label = G.num[i] ? `${G.num[i]} mines around` : 'Empty'; }
     else if (G.flag[i]) { cls = G.over && api.status === 'lost' && !G.mine[i] ? 'xf' : 'f'; label = 'Flagged'; }
     if (b.className !== cls) b.className = cls;
     if (b.textContent !== String(txt)) b.textContent = txt;
-    b.setAttribute('aria-label', label);
+    b.setAttribute('aria-label', where + label);
   }
   leftEl.textContent = String(G.M - G.flags);
   if (G.placed && !G.over) api.progress(`${G.R * G.C - G.M - G.opened} safe cells left`, flagMode ? 'Flag mode is on: taps plant flags.' : 'Tap a number with all its mines flagged to open its other neighbours.', G.opened / (G.R * G.C - G.M), 40);

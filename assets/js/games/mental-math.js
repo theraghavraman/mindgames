@@ -25,7 +25,7 @@ api.mid.innerHTML = '<span class="pill">Score <b data-s>0</b></span><span class=
 const kp = MG.h('div', { class: 'kp' });
 kp.innerHTML = ['7', '8', '9', '⌫', '4', '5', '6', '−', '1', '2', '3', '0'].map(k => `<button type="button" data-k="${k}">${k}</button>`).join('') + '<button type="button" class="go" data-k="ok" style="grid-column: span 4">OK</button>';
 api.controls.appendChild(kp);
-kp.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b) { e.preventDefault(); key(b.dataset.k); } });
+MG.press(kp, 'button', (b, e) => { e.preventDefault(); key(b.dataset.k); });
 const R = (a, b) => a + MG.rand(b - a + 1);
 function make() {
   const lv = api.level;
@@ -74,6 +74,6 @@ function end() {
   clearInterval(tick);
   api.over({ value: S.score, title: "Time's up", sub: `${S.right} right and ${S.wrong} wrong in a minute.`, facts: [[S.right, 'Right'], [S.wrong, 'Wrong'], [S.right ? (60 / S.right).toFixed(1) + 's' : '–', 'Per answer']] });
 }
-MG.onKey(e => { if (/^\d$/.test(e.key) || ['Backspace', 'Enter', '-'].includes(e.key)) { e.preventDefault(); key(e.key); } });
+MG.onKey(e => { if (e.key === 'Enter' && e.target.closest('.kp')) return; if (/^\d$/.test(e.key) || ['Backspace', 'Enter', '-'].includes(e.key)) { e.preventDefault(); key(e.key); } });
 newGame();
 })();

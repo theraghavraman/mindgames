@@ -7,7 +7,7 @@ MG.style(`
 .db svg { width: 100%; height: 100%; display: block; overflow: visible; touch-action: manipulation; }
 .db .dot { fill: var(--graphite); }
 .db .hit { stroke: transparent; stroke-width: .34; cursor: pointer; }
-.db .hit:hover + .ln.free { stroke: var(--pencil); opacity: .5; }
+.db .hit:hover + .ln.free, .db .hit:focus-visible + .ln.free { stroke: var(--pencil); opacity: .5; }
 .db .ln { stroke-width: .1; stroke-linecap: round; }
 .db .ln.free { stroke: transparent; }
 .db .ln.p1 { stroke: var(--pen); } .db .ln.p2 { stroke: var(--red); }
@@ -50,9 +50,10 @@ function build() {
   svg = MG.qs('svg', box);
   MG.qs('[data-dt]', svg).innerHTML = MG.range((n + 1) * (n + 1)).map(k => `<circle class="dot" cx="${k % (n + 1)}" cy="${(k / (n + 1)) | 0}" r=".09"/>`).join('');
   MG.qs('[data-bx]', svg).innerHTML = S.boxes.map((_, k) => `<rect class="bx" data-b="${k}" x="${k % n + .06}" y="${((k / n) | 0) + .06}" width=".88" height=".88" rx=".08"/><text class="bl" data-t="${k}" x="${k % n + .5}" y="${((k / n) | 0) + .5}"></text>`).join('');
-  MG.qs('[data-ln]', svg).innerHTML = S.lines.map(([x1, y1, x2, y2], l) => `<line class="hit" data-l="${l}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><line class="ln free" data-v="${l}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`).join('');
+  MG.qs('[data-ln]', svg).innerHTML = S.lines.map(([x1, y1, x2, y2], l) => `<line class="hit" data-l="${l}" tabindex="0" role="button" aria-label="${y1 === y2 ? 'Across' : 'Down'} from row ${y1 + 1}, column ${x1 + 1}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><line class="ln free" data-v="${l}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`).join('');
   api.board.innerHTML = ''; api.board.appendChild(box);
   svg.addEventListener('click', e => { const t = e.target.closest('[data-l]'); if (t && S.turn === 1 && !S.over && api.canPlay()) draw(+t.dataset.l); });
+  svg.addEventListener('keydown', e => { const t = e.target.closest('[data-l]'); if (t && MG.activates(e)) { e.preventDefault(); if (S.turn === 1 && !S.over && api.canPlay()) draw(+t.dataset.l); } });
 }
 function draw(l) {
   if (S.drawn[l]) return;

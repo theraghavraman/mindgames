@@ -214,6 +214,33 @@ MG.onKey = fn => document.addEventListener('keydown', e => {
   fn(e);
 });
 
+/* Buttons that answer on touch-down, for speed, and still work from the keyboard */
+MG.press = (box, sel, fn) => {
+  box.addEventListener('pointerdown', e => { const b = e.target.closest(sel); if (b) fn(b, e); });
+  box.addEventListener('click', e => { const b = e.target.closest(sel); if (b && e.detail === 0) fn(b, e); });
+};
+MG.activates = e => e.key === 'Enter' || e.key === ' ';
+/* Keyboard play on a rectangular board: one cell sits in the tab order and the arrow keys move it.
+   act(i, e) gets every other key and returns true if it used it; moved(i) follows the cursor. */
+MG.gridKeys = (box, cells, cols, act, moved) => {
+  let at = 0;
+  const go = i => { cells[at].tabIndex = -1; at = i; cells[at].tabIndex = 0; };
+  cells.forEach((c, i) => { c.tabIndex = i ? -1 : 0; });
+  box.dataset.keys = '';
+  box.addEventListener('focusin', e => { const i = cells.indexOf(e.target); if (i >= 0) go(i); });
+  box.addEventListener('keydown', e => {
+    const i = cells.indexOf(e.target); if (i < 0) return;
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.key];
+    if (step) {
+      e.preventDefault();
+      const j = i + step, row = k => Math.floor(k / cols);
+      if (j < 0 || j >= cells.length || (Math.abs(step) === 1 && row(j) !== row(i))) return;
+      go(j); cells[j].focus();
+      if (moved) moved(j);
+    } else if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && act(i, e)) e.preventDefault();
+  });
+};
+
 /* ---------------------------------------------------------------- icons */
 const ICONS = {
   undo: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></g>',
@@ -315,6 +342,8 @@ MG.fmtMetric = (metric, v) => !v ? '–' : metric === 'time' ? MG.fmtTime(v) : S
 
 /* =============================================================================
    Shell
+   Delayed work goes through api.later and api.wait, never a bare timer: a new round cancels
+   them, and they only count time the player could be watching.
    cfg: { id, title, chapter, levels, level, metric, timer, rules, legend,
           settings: [{ key, label, desc, def }], onNew(level), onRestart(),
           onPause(paused), onSetting(key, value), size: { ar, chrome, chromeL, maxW, minW } }
@@ -380,8 +409,10 @@ MG.shell = function (cfg) {
   MG.qsa('[data-mg]', app).forEach(n => { el[n.dataset.mg] = n; });
   api.app = app; api.board = el.board; api.wrap = el.wrap; api.mid = el.mid; api.controls = el.controls;
   MG.qs('.back', app).addEventListener('click', e => { if (MG.embedded) { e.preventDefault(); MG.toParent({ mg: 'home' }); } });
-  document.addEventListener('mg:pause', () => { if (timed && api.status === 'playing' && !api.isBusy) api.setPaused(true); });
-  document.addEventListener('mg:resume', () => { if (api.paused) api.setPaused(false); });
+  let away = false, awayPaused = false;
+  const pauseAway = () => { if (api.status === 'playing' && !api.isBusy && !api.paused) { api.setPaused(true); awayPaused = true; } };
+  document.addEventListener('mg:pause', () => { away = true; pauseAway(); });
+  document.addEventListener('mg:resume', () => { away = false; if (awayPaused) { awayPaused = false; api.setPaused(false); } });
   if (cfg.legend) el.controls.appendChild(MG.h('dl', { class: 'legend', 'aria-label': 'Keyboard shortcuts', html: cfg.legend }));
 
   /* sizing */
@@ -407,6 +438,25 @@ MG.shell = function (cfg) {
   api.pref = k => gp[k];
   api.setPref = (k, v) => { gp[k] = v; savePrefs(); };
 
+  /* rounds: everything delayed belongs to the round that started it */
+  let round = 0;
+  const held = () => api.paused || away || document.hidden || MG.anyDialogOpen();
+  const countdown = (ms, done, dead) => {
+    const r = round;
+    let left = ms, last = performance.now();
+    const step = () => {
+      if (r !== round) { if (dead) dead(); return; }
+      const now = performance.now();
+      if (!held()) left -= now - last;
+      last = now;
+      if (left > 0 || held()) setTimeout(step, MG.clamp(left, 16, 50)); else done();
+    };
+    setTimeout(step, MG.clamp(ms, 0, 50));
+  };
+  api.later = (fn, ms = 0) => countdown(ms, fn);
+  /* Resolves true when the time has passed, false if the round ended first */
+  api.wait = ms => new Promise(go => countdown(ms, () => go(true), () => go(false)));
+
   /* busy + pause */
   api.busy = (on, text) => {
     api.isBusy = !!on;
@@ -421,7 +471,7 @@ MG.shell = function (cfg) {
     el.pause.setAttribute('aria-label', api.paused ? 'Resume' : 'Pause');
   };
   api.setPaused = p => {
-    if (!timed || api.status !== 'playing' || api.isBusy) p = false;
+    if (api.status !== 'playing' || api.isBusy) p = false;
     if (api.paused === p) return;
     api.paused = p;
     syncPause();
@@ -513,6 +563,7 @@ MG.shell = function (cfg) {
   api.newGame = k => {
     if (api.isBusy) return;
     if (api.status === 'playing' && api.dirty) stats.breakStreak(api.level);
+    round++;
     api.setLevel(k || api.level);
     api.paused = false; syncPause(); api.clearCoach();
     if (cfg.onNew) cfg.onNew(api.level);
@@ -520,6 +571,7 @@ MG.shell = function (cfg) {
   api.restart = () => {
     if (!cfg.onRestart || api.isBusy) return;
     if (api.status === 'playing' && api.dirty) stats.breakStreak(api.level);
+    round++;
     api.paused = false; syncPause(); api.clearCoach();
     cfg.onRestart();
   };
@@ -527,11 +579,13 @@ MG.shell = function (cfg) {
   /* game lifecycle */
   api.dirty = false;
   api.begin = (opts = {}) => {
-    api.status = 'playing'; api.dirty = false;
+    round++;
+    api.status = 'playing'; api.dirty = false; api.paused = false;
     if (!opts.resumed) stats.start(api.level); else MG.recent(cfg.id);
     api.timer.reset(opts.elapsed || 0);
     if (timed) api.timer.start();
     api.busy(false); syncPause();
+    if (away) pauseAway();
   };
   const finish = () => { api.timer.stop(); api.paused = false; syncPause(); };
   api.win = (o = {}) => {
@@ -543,7 +597,7 @@ MG.shell = function (cfg) {
     if (!o.quiet) MG.confetti();
     const L = levels[api.level], lvl = L.name.toLowerCase();
     const badge = o.badge !== undefined ? o.badge : r.isBest ? (r.first ? `Your first ${lvl} win` : metric === 'time' ? 'New best time' : metric === 'score' ? 'New best score' : 'New record') : r.first ? `Your first ${lvl} win` : '';
-    setTimeout(() => api.end(Object.assign({ kind: 'won', title: 'Solved', big: value != null ? MG.fmtMetric(metric, value) : '', badge }, o)), o.delay != null ? o.delay : MG.reduced() ? 150 : 1200);
+    api.later(() => api.end(Object.assign({ kind: 'won', title: 'Solved', big: value != null ? MG.fmtMetric(metric, value) : '', badge }, o)), o.delay != null ? o.delay : MG.reduced() ? 150 : 1200);
     return r;
   };
   api.lose = (o = {}) => {
@@ -551,14 +605,14 @@ MG.shell = function (cfg) {
     api.status = 'lost'; finish();
     stats.loss(api.level);
     MG.sfx.lose(); MG.buzz(80);
-    setTimeout(() => api.end(Object.assign({ kind: 'lost', title: 'Game over' }, o)), o.delay != null ? o.delay : 900);
+    api.later(() => api.end(Object.assign({ kind: 'lost', title: 'Game over' }, o)), o.delay != null ? o.delay : 900);
   };
   api.draw = (o = {}) => {
     if (api.status !== 'playing') return;
     api.status = 'draw'; finish();
     stats.draw(api.level);
     MG.sfx.draw();
-    setTimeout(() => api.end(Object.assign({ kind: 'draw', title: 'Draw' }, o)), o.delay != null ? o.delay : 900);
+    api.later(() => api.end(Object.assign({ kind: 'draw', title: 'Draw' }, o)), o.delay != null ? o.delay : 900);
   };
   /* Score games: record the score and show the sheet */
   api.over = (o = {}) => {
@@ -567,7 +621,7 @@ MG.shell = function (cfg) {
     const r = stats.win(api.level, o.value || 0);
     const good = r.isBest && o.value > 0;
     if (good) { MG.sfx.win(); if (!o.quiet) MG.confetti(); } else MG.sfx.draw();
-    setTimeout(() => api.end(Object.assign({ kind: good ? 'won' : 'draw', title: 'Game over', big: String(o.value || 0), badge: good ? 'New best score' : '' }, o)), o.delay != null ? o.delay : 700);
+    api.later(() => api.end(Object.assign({ kind: good ? 'won' : 'draw', title: 'Game over', big: String(o.value || 0), badge: good ? 'New best score' : '' }, o)), o.delay != null ? o.delay : 700);
     return r;
   };
 

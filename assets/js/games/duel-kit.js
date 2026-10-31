@@ -12,7 +12,7 @@ MG.duelShell = cfg => {
   api.turn = (mine, extra) => api.progress(mine ? 'Your turn' : 'The computer is thinking', extra || '', null, 0, mine ? 'turn' : 'cpu');
   let first = MG.store.get('first:' + cfg.id);
   api.nextFirst = () => { first = first === 'cpu' ? 'you' : 'cpu'; MG.store.set('first:' + cfg.id, first); return first; };
-  api.think = (fn, ms = 420) => setTimeout(() => { if (api.status === 'playing') fn(); }, MG.reduced() ? 60 : ms);
+  api.think = (fn, ms = 420) => api.later(() => { if (api.status === 'playing') fn(); }, MG.reduced() ? 60 : ms);
   return api;
 };
 })();

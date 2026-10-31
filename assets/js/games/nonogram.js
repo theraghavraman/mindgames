@@ -27,7 +27,7 @@ const RULES = `<p>Shade cells to reveal a hidden picture.</p><ul>
 <li>The numbers beside each row and above each column list that line's runs of shaded cells, in order.</li>
 <li><b>3 1</b> means a run of three shaded cells, at least one empty cell, then a single shaded cell.</li>
 <li>Mark cells you know are empty with a cross. Crosses are only notes for you.</li></ul>
-<p>Drag to shade or cross several cells in a line. Right-click or long-press to cross.</p><p class="tip">Every puzzle can be solved line by line without guessing.</p>`;
+<p>Drag to shade or cross several cells in a line. Right-click or long-press to cross.</p><p>On a keyboard, move with the arrow keys, press <kbd>Enter</kbd> or <kbd>Space</kbd> to mark a cell and <kbd>X</kbd> to cross it.</p><p class="tip">Every puzzle can be solved line by line without guessing.</p>`;
 
 /* ---- line solver: which cells are forced in a line, given its clue and what is known */
 function solveLine(line, clue) {
@@ -127,12 +127,18 @@ function build() {
   els = [];
   for (let i = 0; i < n * n; i++) {
     const r = (i / n) | 0, c = i % n;
-    const el = MG.h('div', { class: 'gc', 'data-i': i }); el.dataset.base = 'gc' + (c % 5 === 4 && c < n - 1 ? ' t5' : '') + (r % 5 === 4 && r < n - 1 ? ' b5' : '');
+    const el = MG.h('div', { class: 'gc', 'data-i': i, role: 'gridcell' }); el.dataset.base = 'gc' + (c % 5 === 4 && c < n - 1 ? ' t5' : '') + (r % 5 === 4 && r < n - 1 ? ' b5' : '');
     els.push(el); grid.appendChild(el);
   }
   box.append(corner, top, left, grid);
   api.board.innerHTML = ''; api.board.appendChild(box);
   bind(grid);
+  MG.gridKeys(grid, els, n, (i, e) => {
+    if (MG.activates(e)) mark(i, mode);
+    else if (e.key === 'x' || e.key === 'X') mark(i, 2);
+    else return false;
+    return true;
+  }, render);
   MG.qs('[data-hc]', tools).textContent = S.hintsLeft;
 }
 const lineVals = (t) => (t < S.n ? MG.range(S.n).map(c => S.cells[t * S.n + c] === 1 ? 1 : 0) : MG.range(S.n).map(r => S.cells[r * S.n + t - S.n] === 1 ? 1 : 0));
@@ -142,6 +148,7 @@ function render(hover = -1) {
   for (let i = 0; i < n * n; i++) {
     const v = S.cells[i], r = (i / n) | 0, c = i % n;
     els[i].className = els[i].dataset.base + (v === 1 ? ' f' : v === 2 ? ' x' : '') + ((r === hr || c === hc) && api.status === 'playing' ? ' hl' : '') + (S.hintAt === i ? ' hint' : '');
+    els[i].setAttribute('aria-label', `Row ${r + 1}, column ${c + 1}: ${v === 1 ? 'shaded' : v === 2 ? 'crossed' : 'empty'}`);
   }
   let done = 0;
   for (let t = 0; t < 2 * n; t++) {
@@ -194,6 +201,14 @@ function bind(grid) {
   const end = () => { clearTimeout(lpTimer); if (!stroke) return; if (stroke.list.length) { S.history.push(stroke.list); api.dirty = true; } stroke = null; save(); checkWin(); };
   window.addEventListener('pointerup', end); grid.addEventListener('pointercancel', end);
   grid.addEventListener('pointerleave', () => { if (!stroke) render(); });
+}
+function mark(i, tool) {
+  if (!api.canPlay()) return;
+  const cur = S.cells[i];
+  S.cells[i] = cur === tool ? 0 : tool; S.history.push([[i, cur]]); S.hintAt = -1; api.dirty = true;
+  MG.sfx.tap(); save();
+  if (!render(i)) return;
+  checkWin();
 }
 function undo() {
   if (!api.canPlay()) return;

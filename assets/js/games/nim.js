@@ -31,7 +31,7 @@ function newGame() {
   S = { heaps, start: heaps.slice(), turn: api.nextFirst() === 'you' ? 1 : 2, pick: null, over: false, mis: !!api.pref('misere') };
   rowsEl = MG.h('div', { class: 'nm2', role: 'group', 'aria-label': 'Rows of stones' });
   api.board.innerHTML = ''; api.board.appendChild(rowsEl);
-  rowsEl.addEventListener('click', e => { const b = e.target.closest('.st'); if (!b || b.disabled) return; const h = +b.dataset.h, k = +b.dataset.k;
+  rowsEl.addEventListener('click', e => { const b = e.target.closest('.st'); if (!b || b.disabled || S.settling) return; const h = +b.dataset.h, k = +b.dataset.k;
     if (S.pick && S.pick.h === h && S.pick.k === k) take(); else { S.pick = { h, k }; MG.sfx.tap(); render(); } });
   api.begin(); render();
   if (S.turn === 2) api.think(cpu, 700);
@@ -50,16 +50,17 @@ function cpu() {
   let mv = (lvl === 'hard' || (lvl === 'medium' && Math.random() < .5) || (lvl === 'easy' && Math.random() < .15)) ? best(S.heaps) : null;
   if (!mv) { const h = MG.pick(live); mv = [h, 1 + MG.rand(Math.min(S.heaps[h], lvl === 'easy' ? 3 : S.heaps[h]))]; }
   S.pick = { h: mv[0], k: S.heaps[mv[0]] - mv[1] }; render();
-  setTimeout(() => take(true), 650);
+  api.later(() => take(true), 650);
 }
 function take(fromCpu) {
-  if (!S.pick || S.over || (!fromCpu && (S.turn !== 1 || !api.canPlay()))) return;
+  if (!S.pick || S.over || S.settling || (!fromCpu && (S.turn !== 1 || !api.canPlay()))) return;
   const { h, k } = S.pick, n = S.heaps[h] - k;
   MG.qsa(`.st[data-h="${h}"]`, rowsEl).forEach(b => { if (+b.dataset.k >= k) b.classList.add('gone'); });
-  S.heaps[h] = k; S.pick = null; api.dirty = true;
+  S.heaps[h] = k; S.pick = null; S.settling = true; api.dirty = true;
   fromCpu ? MG.sfx.move() : MG.sfx.place();
   api.coach(fromCpu ? 'cpu' : 'turn', fromCpu ? `The computer took ${MG.plural(n, 'stone')}` : `You took ${MG.plural(n, 'stone')}`, `From row ${h + 1}.`, 2200);
-  setTimeout(() => {
+  api.later(() => {
+    S.settling = false;
     if (S.heaps.every(v => !v)) {
       S.over = true; render();
       const lastWasYou = !fromCpu, youWin = S.mis ? !lastWasYou : lastWasYou;

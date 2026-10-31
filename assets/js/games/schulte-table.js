@@ -23,7 +23,7 @@ function newGame(level) {
   const box = MG.h('div', { class: 'sc', role: 'grid' }); box.style.setProperty('--n', n); box.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
   els = nums.map(v => { const b = MG.h('button', { type: 'button', text: String(v), 'data-v': v }); box.appendChild(b); return b; });
   api.board.innerHTML = ''; api.board.appendChild(box);
-  box.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b) tap(b); });
+  MG.press(box, 'button', tap);
   api.begin(); render();
 }
 function tap(b) {

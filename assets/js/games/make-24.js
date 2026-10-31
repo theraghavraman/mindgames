@@ -74,7 +74,11 @@ function newGame(level) {
   box.addEventListener('click', e => { const b = e.target.closest('button'); if (b) tap(+b.dataset.i); });
   op = null; api.begin(); render();
 }
-function reset() { if (!S) return; S.cards = S.start.map(v => ({ v: [v, 1], made: false })); S.sel = -1; S.hist = []; op = null; render(); }
+function reset() {
+  if (!S || api.isBusy) return;
+  if (api.status !== 'playing') { S.hints = 0; api.begin(); }
+  S.cards = S.start.map(v => ({ v: [v, 1], made: false })); S.sel = -1; S.hist = []; op = null; render();
+}
 const alive = () => S.cards.map((c, i) => (c ? i : -1)).filter(i => i >= 0);
 function tap(i) {
   if (!api.canPlay() || !S.cards[i]) return;
@@ -114,7 +118,7 @@ function render() {
   MG.qsa('[data-o]', ops).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.o === op)));
   if (api.status === 'playing') api.progress(`${MG.plural(alive().length, 'card')} left`, S.sel < 0 ? 'Tap a number to start.' : !op ? 'Now pick + − × or ÷.' : 'Now tap the second number.', null, 0);
 }
-MG.onKey(e => { const o = { '+': '+', '-': '−', '*': '×', 'x': '×', '/': '÷' }[e.key]; if (o) { op = o; render(); } else if (/^[1-4]$/.test(e.key)) tap(+e.key - 1); });
+MG.onKey(e => { const o = { '+': '+', '-': '−', '*': '×', 'x': '×', '/': '÷' }[e.key]; if (o) { if (api.canPlay()) { op = o; render(); } } else if (/^[1-4]$/.test(e.key)) tap(+e.key - 1); });
 MG.debug = { solve, deal, LEVELS };
 newGame(api.level);
 })();

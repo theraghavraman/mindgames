@@ -32,7 +32,7 @@ const LEVELS = {
   hard: { name: 'Hard', rank: 3, n: 13, words: 12, dirs: [[0, 1], [1, 0], [1, 1], [-1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1]], desc: '13×13, any direction, even backwards.' },
 };
 const RULES = `<p>Find every word from the list hidden in the grid.</p><ul><li>Words run in straight lines: across, down, or diagonally, depending on the level. On Hard they can also run backwards.</li>
-<li>Drag from the first letter to the last to circle a word.</li></ul><p class="tip">Each puzzle uses a theme, shown above the word list.</p>`;
+<li>Drag from the first letter to the last to circle a word.</li></ul><p>On a keyboard, move with the arrow keys, press <kbd>Enter</kbd> on the first letter, move to the last letter and press <kbd>Enter</kbd> again. <kbd>Esc</kbd> lets go.</p><p class="tip">Each puzzle uses a theme, shown above the word list.</p>`;
 const FREQ = 'EEEEEEEEEEEETTTTTTTTTAAAAAAAAOOOOOOOIIIIIIINNNNNNNSSSSSSHHHHHHRRRRRRDDDDLLLLCCCUUUMMMWWFFGGYYPPBVKJXQZ';
 let S = null, box = null, svg = null, list = null;
 const api = MG.shell({ id: 'word-search', title: 'Word Search', chapter: 'brain', levels: LEVELS, metric: 'time', rules: RULES, onNew: newGame, size: { ar: 1, chrome: 300, maxW: 600 } });
@@ -63,7 +63,7 @@ function newGame(level) {
   S = Object.assign(p, { n: L.n, found: [] });
   box = MG.h('div', { class: 'ws', role: 'application', 'aria-label': `Word search, theme ${p.theme}` });
   box.style.setProperty('--n', L.n);
-  box.innerHTML = `<svg viewBox="0 0 ${L.n} ${L.n}" preserveAspectRatio="none"><g data-f></g><line class="cur" data-c x1="0" y1="0" x2="0" y2="0" stroke-width=".72"/></svg><div class="g" style="grid-template-columns:repeat(${L.n},1fr)">${p.g.map(ch => `<span>${ch}</span>`).join('')}</div>`;
+  box.innerHTML = `<svg viewBox="0 0 ${L.n} ${L.n}" preserveAspectRatio="none"><g data-f></g><line class="cur" data-c x1="0" y1="0" x2="0" y2="0" stroke-width=".72"/></svg><div class="g" style="grid-template-columns:repeat(${L.n},1fr)">${p.g.map((ch, i) => `<span aria-label="${ch}, row ${((i / L.n) | 0) + 1}, column ${i % L.n + 1}">${ch}</span>`).join('')}</div>`;
   svg = MG.qs('svg', box);
   api.board.innerHTML = ''; api.board.appendChild(box);
   bind(); api.begin(); render();
@@ -92,6 +92,13 @@ function bind() {
     start = null; line.classList.remove('on');
   };
   box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+  const rc = i => [(i / S.n) | 0, i % S.n];
+  MG.gridKeys(box, MG.qsa('.g span', box), S.n, (i, e) => {
+    if (e.key === 'Escape') { start = null; line.classList.remove('on'); return true; }
+    if (!MG.activates(e) || !api.canPlay()) return false;
+    if (start) { end = snap(start, rc(i)); up(); } else { start = end = rc(i); set(start, end); line.classList.add('on'); }
+    return true;
+  }, i => { if (start) { end = snap(start, rc(i)); set(start, end); } });
 }
 function render() {
   MG.qs('[data-f]', svg).innerHTML = (S.lines || []).map(([a, b], k) => `<line x1="${a[1] + .5}" y1="${a[0] + .5}" x2="${b[1] + .5}" y2="${b[0] + .5}" stroke="${HL[k % HL.length]}" stroke-width=".74"/>`).join('');

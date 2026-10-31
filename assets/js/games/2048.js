@@ -43,6 +43,7 @@ const api = MG.shell({ id: '2048', title: '2048', chapter: 'moves', levels: LEVE
 api.mid.innerHTML = '<span class="pill">Score <b data-score>0</b></span><span class="pill">Best <b data-best>0</b></span>';
 const scoreEl = MG.qs('[data-score]', api.mid), bestEl = MG.qs('[data-best]', api.mid);
 function newGame(level) {
+  pending = null;
   const n = LEVELS[level].n;
   S = { v: 1, level, n, grid: new Array(n * n).fill(null), score: 0, reached: false };
   build(); api.begin(); spawn(); spawn(); render(); save();
@@ -83,7 +84,6 @@ function render() {
 }
 function settle() {
   if (!pending) return;
-  clearTimeout(pending.timer);
   for (const t of pending.dead) { const el = els.get(t.id); if (el) el.remove(); els.delete(t.id); }
   S.grid.forEach(t => { if (t) { t.isNew = false; } });
   spawn();
@@ -139,7 +139,8 @@ function move(dir) {
   S.score += gained; api.dirty = true;
   gained ? MG.sfx.blip(300 + Math.min(900, Math.log2(gained) * 60), .1) : MG.sfx.slide();
   S.grid.forEach((t, i) => { if (t) { const el = tileEl(t); el.style.setProperty('--r', (i / n) | 0); el.style.setProperty('--c', i % n); el.classList.remove('new', 'merged'); } });
-  pending = { dead, timer: setTimeout(settle, 120) };
+  const p = pending = { dead };
+  api.later(() => { if (pending === p) settle(); }, 120);
 }
 function save() { if (S && api.status === 'playing') MG.store.set(KEY, { v: 1, level: S.level, n: S.n, vals: S.grid.map(t => (t ? t.v : 0)), score: S.score, reached: S.reached }); }
 MG.onKey(e => {

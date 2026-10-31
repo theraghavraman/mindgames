@@ -71,7 +71,7 @@ async function play(pit) {
   busy = true; api.dirty = true;
   const before = S.b.slice(), r = sow(S.b, pit, S.turn), shown = before.slice();
   shown[pit] = 0; draw(shown);
-  for (const i of r.path) { shown[i]++; draw(shown, i); MG.sfx.tone(300 + i * 25, .05, 'sine', .03); await MG.sleep(MG.reduced() ? 0 : 140); }
+  for (const i of r.path) { shown[i]++; draw(shown, i); MG.sfx.tone(300 + i * 25, .05, 'sine', .03); if (!await api.wait(MG.reduced() ? 0 : 140)) return; }
   if (r.capture) { MG.sfx.unit(); api.coach(S.turn === 1 ? 'good' : 'cpu', S.turn === 1 ? 'Capture!' : 'The computer captures', 'The last seed landed in an empty pit, taking the pit opposite too.', 2600); }
   else if (r.again) api.coach(S.turn === 1 ? 'good' : 'cpu', S.turn === 1 ? 'Another turn' : 'The computer goes again', 'The last seed landed in the store.', 2200);
   busy = false;

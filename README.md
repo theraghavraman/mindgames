@@ -2,7 +2,7 @@
 
 A browser workbook of 54 mind games: sixteen Sudoku variants, number puzzles, logic grids, moving-piece puzzles,
 duels against the computer, brain training and word games. Everything is static HTML, CSS and JavaScript,
-so it runs on GitHub Pages (or any static host) with no build step.
+so it runs on GitHub Pages (or any static host) with no build step for the site itself.
 
 ## One interface for every game
 
@@ -32,6 +32,24 @@ python3 -m http.server 8000
 
 then open <http://localhost:8000>.
 
+## Changing the games
+
+`mind-games.html` holds a copy of every shared style and script, so refresh it after changing any of them:
+
+```
+node tools/build-offline.mjs
+```
+
+Anything a game does after a delay goes through `api.later` or `api.wait` rather than a bare timer. A new round cancels
+them, and they only count time the player could be watching, so a pause, a hidden game or an open dialog holds them.
+
+The browser regression tests need Chrome and `playwright-core`:
+
+```
+npm i --no-save playwright-core
+node tests/regression.mjs
+```
+
 ## What's inside
 
 ```
@@ -51,6 +69,8 @@ assets/js/catalog.js     the list of games shown on the hub
 assets/js/thumbs.js      the small drawings on the hub cards
 assets/js/data/words5.js five-letter words for Word Guess
 assets/fonts/            Recursive, self-hosted
+tools/build-offline.mjs  refreshes mind-games.html from the sources
+tests/regression.mjs     browser tests for rounds, pause, keyboard play and packaging
 ```
 
 Progress, settings and statistics are kept in the browser's local storage on each device. Nothing is sent anywhere.

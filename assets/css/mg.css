@@ -137,6 +137,7 @@ body {
 button, input, select { font-family: inherit; color: inherit; }
 a { color: var(--pen); }
 :focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
+[data-keys] :focus-visible { outline-offset: -2px; position: relative; z-index: 3; }
 .i { width: 20px; height: 20px; flex: none; display: block; }
 .i.sm { width: 16px; height: 16px; }
 .i.lg { width: 30px; height: 30px; }

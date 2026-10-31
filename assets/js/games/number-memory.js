@@ -19,10 +19,10 @@ const LEVELS = {
   hard: { name: 'Flash', rank: 3, per: 450, desc: 'Under half a second per digit.' },
 };
 const RULES = `<p>A number appears for a moment. When it disappears, type it back.</p><ul><li>Get it right and the next number is one digit longer.</li><li>One mistake ends the game. Your score is the longest number you remembered.</li></ul><p class="tip">Group digits into chunks of two or three, like a phone number.</p>`;
-let S = null, card = null;
+let S = null, card = null, answering = false;
 const api = MG.shell({ id: 'number-memory', title: 'Number Memory', chapter: 'brain', levels: LEVELS, metric: 'score', timer: false, rules: RULES, onNew: newGame, size: { ar: 1.5, chrome: 230, maxW: 620 } });
 api.mid.innerHTML = '<span class="pill">Digits <b data-d>3</b></span>';
-function newGame() { S = { len: 3, best: 0 }; card = MG.h('div', { class: 'nm' }); api.board.innerHTML = ''; api.board.appendChild(card); api.begin(); round(); }
+function newGame() { answering = false; S = { len: 3, best: 0 }; card = MG.h('div', { class: 'nm' }); api.board.innerHTML = ''; api.board.appendChild(card); api.begin(); round(); }
 async function round() {
   const digits = [String(1 + MG.rand(9))]; for (let k = 1; k < S.len; k++) digits.push(String(MG.rand(10)));
   S.num = digits.join('');
@@ -30,16 +30,16 @@ async function round() {
   card.style.setProperty('--len', S.len);
   card.innerHTML = `<div><p class="lbl">Remember this number</p><p class="num">${S.num}</p></div><div class="bar"><i></i></div>`;
   api.progress('Memorise', `${S.len} digits.`, null, 0, 'info');
-  const ms = 900 + S.len * LEVELS[api.level].per, bar = MG.qs('.bar i', card), t0 = performance.now();
-  while (performance.now() - t0 < ms) { if (api.status !== 'playing') return; if (!api.paused && !MG.anyDialogOpen()) bar.style.transform = `scaleX(${1 - (performance.now() - t0) / ms})`; await MG.sleep(50); }
+  const ms = 900 + S.len * LEVELS[api.level].per, bar = MG.qs('.bar i', card);
+  for (let left = ms; left > 0; left -= 50) { bar.style.transform = `scaleX(${left / ms})`; if (!await api.wait(50)) return; }
   card.innerHTML = '<div style="width:100%"><p class="lbl">What was the number?</p><input inputmode="numeric" autocomplete="off" aria-label="The number"><p class="lbl" style="margin-top:3cqi">Press Enter to check</p></div>';
-  const inp = MG.qs('input', card); inp.focus();
+  const inp = MG.qs('input', card); inp.focus(); answering = true;
   api.progress('Type it back', 'Press Enter when you are done.', null, 0, 'turn');
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(inp.value.replace(/\D/g, '')); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter' && answering && api.canPlay()) { answering = false; inp.disabled = true; check(inp.value.replace(/\D/g, '')); } });
 }
 function check(v) {
   api.dirty = true;
-  if (v === S.num) { MG.sfx.unit(); S.best = S.len; S.len++; api.coach('good', 'Correct', `Next: ${S.len} digits.`, 1500); setTimeout(round, 600); return; }
+  if (v === S.num) { MG.sfx.unit(); S.best = S.len; S.len++; api.coach('good', 'Correct', `Next: ${S.len} digits.`, 1500); api.later(round, 600); return; }
   MG.sfx.wrong();
   const cmp = [...S.num].map((d, i) => (v[i] === d ? d : `<span class="x">${v[i] || '·'}</span>`)).join('');
   card.innerHTML = `<div><p class="lbl">The number was</p><p class="cmp">${S.num}</p><p class="lbl" style="margin-top:3cqi">You typed</p><p class="cmp">${cmp}</p></div>`;
